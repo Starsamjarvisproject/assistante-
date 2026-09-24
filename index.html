@@ -66,6 +66,7 @@ document.getElementById('titre').textContent = NOM_ASSISTANTE;
 
 const REGLES_OUTILS = 'Tu as accès aux fiches prospects, à l\'agenda et à la création de rendez-vous grâce à tes outils. Pour toute question sur une entreprise, utilise chercher_fiche : n\'invente jamais une information. S\'il y a plusieurs fiches possibles, demande laquelle. Pour créer un rendez-vous : trouve la fiche, appelle preparer_rdv (date au format AAAA-MM-JJ ; si l\'année n\'est pas dite, prends la prochaine date à venir), puis répète en une seule phrase courte le résumé et demande confirmation. N\'appelle confirmer_action qu\'après un oui clair de l\'utilisateur, et annuler_action s\'il refuse. L\'utilisateur peut aussi confirmer avec les boutons à l\'écran. Ne dis jamais qu\'une action est faite avant d\'avoir reçu le résultat de confirmer_action. Pour un rendez-vous en visio, précise à la fin que la fiche est prête pour envoyer le lien démo depuis Jarvis.';
 const REGLES_MEMOIRE = ' Tu as une mémoire personnelle propre à cet utilisateur, en deux parties : "profil" (son ton, ses habitudes, comment il aime que tu répondes, ses infos personnelles importantes) et "long_terme" (les éléments importants à garder). Quand il te demande de retenir quelque chose, ou te corrige sur une manière de faire durable, appelle retenir (catégorie profil ou long_terme ; une phrase courte et claire) puis dis-lui en quelques mots ce que tu as retenu. Appelle oublier s\'il te demande d\'oublier quelque chose. Ne retiens jamais de mot de passe, de donnée bancaire ni d\'information sensible inutile. Adapte-toi à ce que tu sais déjà de lui.';
+const REGLES_SKILLS = ' Tes compétences sont des skills (notes de procédure dans ton dossier). Avant une demande d\'action, regarde ton index de skills et lis le skill correspondant avec lire_skill si besoin. Si aucun skill ne couvre la demande, dis honnêtement que tu ne sais pas encore le faire ; si l\'utilisateur t\'explique comment procéder, enregistre-le avec creer_skill (nom court, résumé, étapes). Un skill ne te donne AUCUN pouvoir supplémentaire : n\'affirme jamais pouvoir exécuter une action qui n\'existe pas dans tes outils, et ne supprime jamais rien.';
 let MEMOIRE = null;
 function consigneDuJour() {
   const d = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
@@ -75,7 +76,8 @@ function consigneDuJour() {
   if (m.profil) mem += ' Profil de cet utilisateur (à respecter) : ' + m.profil.replace(/\n/g, ' ') + '.';
   if (m.long_terme) mem += ' Mémoire long terme : ' + m.long_terme.replace(/\n/g, ' ') + '.';
   if (m.historique) mem += ' Tes dernières sessions avec lui : ' + m.historique.replace(/\n/g, ' ') + '.';
-  return persona + ' Nous sommes le ' + d + '. ' + REGLES_OUTILS + REGLES_MEMOIRE + mem;
+  if (m.skills) mem += ' Index de tes skills : ' + m.skills.replace(/\n/g, ' ; ') + '.';
+  return persona + ' Nous sommes le ' + d + '. ' + REGLES_OUTILS + REGLES_MEMOIRE + REGLES_SKILLS + mem;
 }
 async function chargerMemoire() {
   try { const r = await api({ action: 'memoire', token: TOKEN }); if (r.ok) MEMOIRE = r.donnees; } catch (e) {}
@@ -87,6 +89,8 @@ const OUTILS = [
   { name: 'preparer_rdv', description: 'Prépare un rendez-vous sur une fiche SANS l\'enregistrer : renvoie un résumé à faire confirmer.', parameters: { type: 'OBJECT', properties: { id_fiche: { type: 'STRING' }, date: { type: 'STRING', description: 'AAAA-MM-JJ' }, heure: { type: 'STRING', description: 'ex : 10h00' }, type: { type: 'STRING', description: 'ex : démo visio, rendez-vous physique, appel' }, note: { type: 'STRING' } }, required: ['id_fiche', 'date', 'heure'] } },
   { name: 'confirmer_action', description: 'Exécute l\'action préparée, UNIQUEMENT après un oui clair de l\'utilisateur.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } },
   { name: 'retenir', description: 'Enregistre dans ta mémoire personnelle (propre à cet utilisateur) une préférence, une règle ou un fait durable.', parameters: { type: 'OBJECT', properties: { categorie: { type: 'STRING', description: 'profil ou long_terme' }, contenu: { type: 'STRING', description: 'Une phrase courte' } }, required: ['contenu'] } },
+  { name: 'lire_skill', description: 'Lit le détail d\'un de tes skills (procédure) à partir de son nom, tel qu\'il apparaît dans ton index.', parameters: { type: 'OBJECT', properties: { nom: { type: 'STRING' } }, required: ['nom'] } },
+  { name: 'creer_skill', description: 'Crée un nouveau skill (ou enrichit un skill existant) : une note de procédure sur une manière de faire que l\'utilisateur t\'apprend. Ne donne aucun pouvoir supplémentaire.', parameters: { type: 'OBJECT', properties: { nom: { type: 'STRING', description: 'Nom court, ex : relance_client' }, resume: { type: 'STRING', description: 'Une phrase' }, contenu: { type: 'STRING', description: 'Les étapes, en quelques lignes' } }, required: ['nom', 'resume', 'contenu'] } },
   { name: 'oublier', description: 'Supprime de ta mémoire les éléments contenant ce texte.', parameters: { type: 'OBJECT', properties: { contient: { type: 'STRING' } }, required: ['contient'] } },
   { name: 'annuler_action', description: 'Annule l\'action préparée.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } }
 ];
@@ -153,6 +157,7 @@ async function traiterAppelsOutils(appels) {
   const reponses = [];
   for (const a of appels) {
     const res = await appelerOutil(a.name, a.args);
+    if (a.name === 'creer_skill' && res.ok !== false) { chargerMemoire(); ajouterCarte(el('div', 'msg outil', '🧩 Skill : ' + (a.args && a.args.nom || ''))); }
     if (a.name === 'retenir' || a.name === 'oublier') { chargerMemoire(); if (res.ok !== false) ajouterCarte(el('div', 'msg outil', a.name === 'retenir' ? '🧠 Retenu : ' + (a.args && a.args.contenu || '') : '🧠 Oublié (' + res.supprimes + ')')); }
     afficherResultatOutil(a.name, a.args, res);
     reponses.push({ id: a.id, name: a.name, response: res });
