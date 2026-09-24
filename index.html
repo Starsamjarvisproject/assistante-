@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<title>Assistante vocale</title>
+<title>SIA</title>
 <style>
   :root{--vert:#1a8a7a;--fond:#F2F2F7;--texte:#1C1C1E}
   *{box-sizing:border-box}
@@ -47,7 +47,7 @@
       <option value="Aoede">Voix : Aoede (dynamique, claire)</option>
       <option value="Kore">Voix : Kore (ferme, professionnelle)</option>
     </select>
-    <button id="btn-demarrer" onclick="demarrer()">🎙️ Parler avec l'assistante</button>
+    <button id="btn-demarrer" onclick="demarrer()">🎙️ Parler avec SIA</button>
     <button id="btn-arreter" class="rouge" onclick="arreter()" style="display:none">Terminer</button>
     <div id="statut">Prête.</div>
   </div>
@@ -58,15 +58,21 @@
 <script>
 // ===== Configuration =====
 const URL_API = 'https://script.google.com/macros/s/AKfycbxjicFrmGTKaeFflGy0FD7ESSONtCaZPzSwltxlydojcSMdZ6QUx3s8od_QQT7Qw0SGjA/exec';
-const NOM_ASSISTANTE = 'Assistante';
-const CONSIGNE = 'Tu es l\'assistante commerciale personnelle de l\'utilisateur, dans un CRM de prospection pour un professionnel de l\'échafaudage. Tu es chaleureuse, charmeuse et sensuelle dans le ton, mais toujours strictement professionnelle : tu ne dépasses jamais la limite fixée par l\'utilisateur, tu restes dans le charme et la séduction légère, jamais explicite. Tu vas droit au but et tu tutoies l\'utilisateur. À l\'oral, tes réponses sont très brèves : une à deux phrases maximum.';
+const NOM_ASSISTANTE = 'SIA';
+const CONSIGNE = 'Tu t\'appelles SIA (Supreme Intelligence Assistant). Tu es l\'assistante commerciale personnelle de l\'utilisateur, dans un CRM de prospection pour un professionnel de l\'échafaudage. Tu es chaleureuse, charmeuse et sensuelle dans le ton, mais toujours strictement professionnelle : tu ne dépasses jamais la limite fixée par l\'utilisateur, tu restes dans le charme et la séduction légère, jamais explicite. Tu vas droit au but et tu tutoies l\'utilisateur. À l\'oral, tes réponses sont très brèves : une à deux phrases maximum.';
 
 document.getElementById('titre').textContent = NOM_ASSISTANTE;
 
 const REGLES_OUTILS = 'Tu as accès aux fiches prospects, à l\'agenda et à la création de rendez-vous grâce à tes outils. Pour toute question sur une entreprise, utilise chercher_fiche : n\'invente jamais une information. S\'il y a plusieurs fiches possibles, demande laquelle. Pour créer un rendez-vous : trouve la fiche, appelle preparer_rdv (date au format AAAA-MM-JJ ; si l\'année n\'est pas dite, prends la prochaine date à venir), puis répète en une seule phrase courte le résumé et demande confirmation. N\'appelle confirmer_action qu\'après un oui clair de l\'utilisateur, et annuler_action s\'il refuse. L\'utilisateur peut aussi confirmer avec les boutons à l\'écran. Ne dis jamais qu\'une action est faite avant d\'avoir reçu le résultat de confirmer_action. Pour un rendez-vous en visio, précise à la fin que la fiche est prête pour envoyer le lien démo depuis Jarvis.';
+const REGLES_MEMOIRE = ' Tu as une mémoire personnelle propre à cet utilisateur. Quand il te demande de retenir quelque chose, ou te corrige sur une manière de faire durable, appelle retenir (catégorie préférence, règle ou fait ; une phrase courte et claire) puis dis-lui en quelques mots ce que tu as retenu. Appelle oublier s\'il te demande d\'oublier quelque chose. Ne retiens jamais de mot de passe, de donnée bancaire ni d\'information sensible inutile.';
+let MEMOIRE = null;
 function consigneDuJour() {
   const d = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
-  return CONSIGNE + ' Nous sommes le ' + d + '. ' + REGLES_OUTILS;
+  const mem = (MEMOIRE && MEMOIRE.length) ? ' Ce que tu sais déjà de cet utilisateur et dois respecter : ' + MEMOIRE.map(x => '(' + x.categorie + ') ' + x.contenu).join(' ; ') + '.' : '';
+  return CONSIGNE + ' Nous sommes le ' + d + '. ' + REGLES_OUTILS + REGLES_MEMOIRE + mem;
+}
+async function chargerMemoire() {
+  try { const r = await api({ action: 'memoire', token: TOKEN }); if (r.ok) MEMOIRE = r.donnees; } catch (e) {}
 }
 const OUTILS = [
   { name: 'chercher_fiche', description: 'Cherche des fiches prospects par nom d\'entreprise.', parameters: { type: 'OBJECT', properties: { recherche: { type: 'STRING', description: 'Nom ou partie du nom de l\'entreprise' } }, required: ['recherche'] } },
@@ -74,6 +80,8 @@ const OUTILS = [
   { name: 'agenda', description: 'Liste les rendez-vous et événements à venir (rendez-vous des fiches + Google Agenda).', parameters: { type: 'OBJECT', properties: { jours: { type: 'INTEGER', description: 'Nombre de jours à regarder (défaut 14)' } } } },
   { name: 'preparer_rdv', description: 'Prépare un rendez-vous sur une fiche SANS l\'enregistrer : renvoie un résumé à faire confirmer.', parameters: { type: 'OBJECT', properties: { id_fiche: { type: 'STRING' }, date: { type: 'STRING', description: 'AAAA-MM-JJ' }, heure: { type: 'STRING', description: 'ex : 10h00' }, type: { type: 'STRING', description: 'ex : démo visio, rendez-vous physique, appel' }, note: { type: 'STRING' } }, required: ['id_fiche', 'date', 'heure'] } },
   { name: 'confirmer_action', description: 'Exécute l\'action préparée, UNIQUEMENT après un oui clair de l\'utilisateur.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } },
+  { name: 'retenir', description: 'Enregistre dans ta mémoire personnelle (propre à cet utilisateur) une préférence, une règle ou un fait durable.', parameters: { type: 'OBJECT', properties: { categorie: { type: 'STRING', description: 'préférence, règle ou fait' }, contenu: { type: 'STRING', description: 'Une phrase courte' } }, required: ['contenu'] } },
+  { name: 'oublier', description: 'Supprime de ta mémoire les éléments contenant ce texte.', parameters: { type: 'OBJECT', properties: { contient: { type: 'STRING' } }, required: ['contient'] } },
   { name: 'annuler_action', description: 'Annule l\'action préparée.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } }
 ];
 const CARTES_ATTENTE = {};
@@ -94,7 +102,7 @@ function carteFiche(f) {
   const infos = [f.ville ? (f.code_postal ? f.code_postal + ' ' : '') + f.ville : '', f.decideur, f.telephone, f.email,
     f.date_rdv ? 'RDV ' + f.date_rdv + (f.heure_rdv ? ' à ' + f.heure_rdv : '') : ''].filter(Boolean);
   infos.forEach(t => c.appendChild(el('div', 'ligne-carte', t)));
-  const a = el('a', 'lien-carte', 'Ouvrir dans Jarvis');
+  const a = el('a', 'lien-carte', 'Ouvrir dans Prospect');
   a.href = URL_API + '?fiche=' + encodeURIComponent(f.id); a.target = '_blank';
   c.appendChild(a);
   return c;
@@ -139,6 +147,7 @@ async function traiterAppelsOutils(appels) {
   const reponses = [];
   for (const a of appels) {
     const res = await appelerOutil(a.name, a.args);
+    if (a.name === 'retenir' || a.name === 'oublier') { chargerMemoire(); if (res.ok !== false) ajouterCarte(el('div', 'msg outil', a.name === 'retenir' ? '🧠 Retenu : ' + (a.args && a.args.contenu || '') : '🧠 Oublié (' + res.supprimes + ')')); }
     afficherResultatOutil(a.name, a.args, res);
     reponses.push({ id: a.id, name: a.name, response: res });
   }
@@ -160,6 +169,7 @@ try { MODELE = localStorage.getItem('modele_live') || null; } catch (e) {}
 // Prepare en arriere-plan le modele et le jeton temporaire (usage unique, valable 10 min pour ouvrir
 // une session) pour que le bouton "Parler" demarre presque instantanement.
 async function preparer() {
+  chargerMemoire();
   try {
     if (!MODELE) {
       const m = await api({ action: 'modeles', token: TOKEN });
