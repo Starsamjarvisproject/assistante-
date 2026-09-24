@@ -20,6 +20,13 @@
   .moi{background:#D4EDDA;margin-left:auto}
   .elle{background:#F2F2F7}
   .err{color:#FF3B30;font-size:14px;white-space:pre-wrap}
+  .outil{background:#fff;border:1px solid #D1D1D6;max-width:100%}
+  .outil.attente{border:2px solid var(--vert)}
+  .titre-carte{font-weight:700;margin-bottom:4px}
+  .ligne-carte{font-size:14px;color:#3A3A3C}
+  .lien-carte{display:inline-block;margin-top:6px;color:var(--vert);font-weight:600}
+  .erreur-carte{color:#FF3B30;font-size:14px}
+  .outil button{margin:8px 8px 0 0;width:auto;padding:10px 16px}
 </style>
 </head>
 <body>
@@ -55,6 +62,97 @@ const NOM_ASSISTANTE = 'Assistante';
 const CONSIGNE = 'Tu es l\'assistante commerciale personnelle de l\'utilisateur, dans un CRM de prospection pour un professionnel de l\'échafaudage. Tu es chaleureuse, charmeuse et sensuelle dans le ton, mais toujours strictement professionnelle : tu ne dépasses jamais la limite fixée par l\'utilisateur, tu restes dans le charme et la séduction légère, jamais explicite. Tu vas droit au but et tu tutoies l\'utilisateur. À l\'oral, tes réponses sont très brèves : une à deux phrases maximum.';
 
 document.getElementById('titre').textContent = NOM_ASSISTANTE;
+
+const REGLES_OUTILS = 'Tu as accès aux fiches prospects, à l\'agenda et à la création de rendez-vous grâce à tes outils. Pour toute question sur une entreprise, utilise chercher_fiche : n\'invente jamais une information. S\'il y a plusieurs fiches possibles, demande laquelle. Pour créer un rendez-vous : trouve la fiche, appelle preparer_rdv (date au format AAAA-MM-JJ ; si l\'année n\'est pas dite, prends la prochaine date à venir), puis répète en une seule phrase courte le résumé et demande confirmation. N\'appelle confirmer_action qu\'après un oui clair de l\'utilisateur, et annuler_action s\'il refuse. L\'utilisateur peut aussi confirmer avec les boutons à l\'écran. Ne dis jamais qu\'une action est faite avant d\'avoir reçu le résultat de confirmer_action. Pour un rendez-vous en visio, précise à la fin que la fiche est prête pour envoyer le lien démo depuis Jarvis.';
+function consigneDuJour() {
+  const d = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
+  return CONSIGNE + ' Nous sommes le ' + d + '. ' + REGLES_OUTILS;
+}
+const OUTILS = [
+  { name: 'chercher_fiche', description: 'Cherche des fiches prospects par nom d\'entreprise.', parameters: { type: 'OBJECT', properties: { recherche: { type: 'STRING', description: 'Nom ou partie du nom de l\'entreprise' } }, required: ['recherche'] } },
+  { name: 'lire_fiche', description: 'Lit les informations principales d\'une fiche à partir de son identifiant.', parameters: { type: 'OBJECT', properties: { id: { type: 'STRING' } }, required: ['id'] } },
+  { name: 'agenda', description: 'Liste les rendez-vous et événements à venir (rendez-vous des fiches + Google Agenda).', parameters: { type: 'OBJECT', properties: { jours: { type: 'INTEGER', description: 'Nombre de jours à regarder (défaut 14)' } } } },
+  { name: 'preparer_rdv', description: 'Prépare un rendez-vous sur une fiche SANS l\'enregistrer : renvoie un résumé à faire confirmer.', parameters: { type: 'OBJECT', properties: { id_fiche: { type: 'STRING' }, date: { type: 'STRING', description: 'AAAA-MM-JJ' }, heure: { type: 'STRING', description: 'ex : 10h00' }, type: { type: 'STRING', description: 'ex : démo visio, rendez-vous physique, appel' }, note: { type: 'STRING' } }, required: ['id_fiche', 'date', 'heure'] } },
+  { name: 'confirmer_action', description: 'Exécute l\'action préparée, UNIQUEMENT après un oui clair de l\'utilisateur.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } },
+  { name: 'annuler_action', description: 'Annule l\'action préparée.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } }
+];
+const CARTES_ATTENTE = {};
+
+function el(tag, classe, texte) {
+  const e = document.createElement(tag);
+  if (classe) e.className = classe;
+  if (texte != null) e.textContent = texte;
+  return e;
+}
+function ajouterCarte(noeud) {
+  const c = document.getElementById('conv');
+  c.appendChild(noeud); c.scrollTop = c.scrollHeight;
+}
+function carteFiche(f) {
+  const c = el('div', 'msg outil');
+  c.appendChild(el('div', 'titre-carte', f.nom || 'Fiche'));
+  const infos = [f.ville ? (f.code_postal ? f.code_postal + ' ' : '') + f.ville : '', f.decideur, f.telephone, f.email,
+    f.date_rdv ? 'RDV ' + f.date_rdv + (f.heure_rdv ? ' à ' + f.heure_rdv : '') : ''].filter(Boolean);
+  infos.forEach(t => c.appendChild(el('div', 'ligne-carte', t)));
+  const a = el('a', 'lien-carte', 'Ouvrir dans Jarvis');
+  a.href = URL_API + '?fiche=' + encodeURIComponent(f.id); a.target = '_blank';
+  c.appendChild(a);
+  return c;
+}
+function afficherResultatOutil(nom, args, res) {
+  if (!res || res.ok === false) { if (res && res.erreur) ajouterCarte(el('div', 'msg outil erreur-carte', res.erreur)); return; }
+  if (res.fiches) res.fiches.slice(0, 3).forEach(f => ajouterCarte(carteFiche(f)));
+  else if (res.fiche) ajouterCarte(carteFiche(res.fiche));
+  else if (res.evenements) {
+    const c = el('div', 'msg outil'); c.appendChild(el('div', 'titre-carte', 'Agenda (' + res.jours + ' jours)'));
+    if (!res.evenements.length) c.appendChild(el('div', 'ligne-carte', 'Rien de prévu.'));
+    res.evenements.forEach(e => c.appendChild(el('div', 'ligne-carte', e.texte)));
+    ajouterCarte(c);
+  } else if (res.en_attente_de_confirmation) {
+    const c = el('div', 'msg outil attente');
+    c.appendChild(el('div', 'titre-carte', 'À confirmer'));
+    c.appendChild(el('div', 'ligne-carte', res.resume));
+    const b1 = el('button', '', 'Confirmer'), b2 = el('button', 'rouge', 'Annuler');
+    b1.onclick = () => decider(res.id_confirmation, true);
+    b2.onclick = () => decider(res.id_confirmation, false);
+    c.appendChild(b1); c.appendChild(b2);
+    CARTES_ATTENTE[res.id_confirmation] = c;
+    ajouterCarte(c);
+  } else if (nom === 'confirmer_action' || nom === 'annuler_action') {
+    cloreCarte(args && args.id_confirmation, nom === 'confirmer_action' ? '✓ ' + res.message : 'Annulé');
+  }
+}
+function cloreCarte(idConf, texte) {
+  const c = CARTES_ATTENTE[idConf];
+  if (!c) return;
+  c.querySelectorAll('button').forEach(b => b.remove());
+  c.appendChild(el('div', 'ligne-carte', texte));
+  delete CARTES_ATTENTE[idConf];
+}
+async function appelerOutil(nom, args) {
+  try {
+    const r = await api({ action: 'outil', nom, args: args || {}, token: TOKEN });
+    return r.ok ? r.donnees : { ok: false, erreur: r.erreur || 'Erreur serveur' };
+  } catch (e) { return { ok: false, erreur: e.message }; }
+}
+async function traiterAppelsOutils(appels) {
+  const reponses = [];
+  for (const a of appels) {
+    const res = await appelerOutil(a.name, a.args);
+    afficherResultatOutil(a.name, a.args, res);
+    reponses.push({ id: a.id, name: a.name, response: res });
+  }
+  if (WS && WS.readyState === 1) WS.send(JSON.stringify({ toolResponse: { functionResponses: reponses } }));
+}
+async function decider(idConf, oui) {
+  const c = CARTES_ATTENTE[idConf];
+  if (c) c.querySelectorAll('button').forEach(b => b.disabled = true);
+  const res = await appelerOutil(oui ? 'confirmer_action' : 'annuler_action', { id_confirmation: idConf });
+  cloreCarte(idConf, oui ? (res.ok === false ? 'Échec : ' + res.erreur : '✓ ' + res.message) : 'Annulé');
+  if (WS && WS.readyState === 1) {
+    WS.send(JSON.stringify({ realtimeInput: { text: oui ? '[Écran] L\'utilisateur a confirmé avec le bouton. Résultat : ' + JSON.stringify(res) : '[Écran] L\'utilisateur a annulé avec le bouton.' } }));
+  }
+}
 
 let TOKEN = null, FLUX = null, WS = null, CTX = null, PROC = null, SRC = null, MODELE = null, JETON_PRET = null;
 try { MODELE = localStorage.getItem('modele_live') || null; } catch (e) {}
@@ -151,7 +249,8 @@ async function demarrer() {
       WS.send(JSON.stringify({ setup: {
         model: MODELE,
         generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: document.getElementById('voix').value } } } },
-        systemInstruction: { parts: [{ text: CONSIGNE }] },
+        systemInstruction: { parts: [{ text: consigneDuJour() }] },
+        tools: [{ functionDeclarations: OUTILS }],
         inputAudioTranscription: {},
         outputAudioTranscription: {}
       } }));
@@ -166,6 +265,7 @@ async function demarrer() {
       let txt = ev.data; if (txt instanceof Blob) txt = await txt.text();
       const m = JSON.parse(txt);
       if (m.setupComplete) { statut('Je t\'écoute — parle quand tu veux.'); demarrerMicro(); document.getElementById('btn-arreter').style.display = ''; bouton.style.display = 'none'; }
+      if (m.toolCall && m.toolCall.functionCalls) { traiterAppelsOutils(m.toolCall.functionCalls); return; }
       const sc = m.serverContent;
       if (!sc) return;
       if (sc.interrupted) { sources.forEach(s => { try { s.stop(); } catch (e) {} }); sources = []; tempsLecture = 0; }
