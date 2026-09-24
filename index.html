@@ -59,17 +59,23 @@
 // ===== Configuration =====
 const URL_API = 'https://script.google.com/macros/s/AKfycbxjicFrmGTKaeFflGy0FD7ESSONtCaZPzSwltxlydojcSMdZ6QUx3s8od_QQT7Qw0SGjA/exec';
 const NOM_ASSISTANTE = 'SIA';
-const CONSIGNE = 'Tu t\'appelles SIA (Supreme Intelligence Assistant). Tu es l\'assistante commerciale personnelle de l\'utilisateur, dans un CRM de prospection pour un professionnel de l\'échafaudage. Tu es chaleureuse, charmeuse et sensuelle dans le ton, mais toujours strictement professionnelle : tu ne dépasses jamais la limite fixée par l\'utilisateur, tu restes dans le charme et la séduction légère, jamais explicite. Tu vas droit au but et tu tutoies l\'utilisateur. À l\'oral, tes réponses sont très brèves : une à deux phrases maximum.';
+const IDENTITE = 'Tu t\'appelles SIA (Supreme Intelligence Assistant). ';
+const CONSIGNE = IDENTITE + 'Tu es l\'assistante commerciale personnelle de l\'utilisateur, dans un CRM de prospection pour un professionnel de l\'échafaudage. Tu es chaleureuse, charmeuse et sensuelle dans le ton, mais toujours strictement professionnelle : tu ne dépasses jamais la limite fixée par l\'utilisateur, tu restes dans le charme et la séduction légère, jamais explicite. Tu vas droit au but et tu tutoies l\'utilisateur. À l\'oral, tes réponses sont très brèves : une à deux phrases maximum.';
 
 document.getElementById('titre').textContent = NOM_ASSISTANTE;
 
 const REGLES_OUTILS = 'Tu as accès aux fiches prospects, à l\'agenda et à la création de rendez-vous grâce à tes outils. Pour toute question sur une entreprise, utilise chercher_fiche : n\'invente jamais une information. S\'il y a plusieurs fiches possibles, demande laquelle. Pour créer un rendez-vous : trouve la fiche, appelle preparer_rdv (date au format AAAA-MM-JJ ; si l\'année n\'est pas dite, prends la prochaine date à venir), puis répète en une seule phrase courte le résumé et demande confirmation. N\'appelle confirmer_action qu\'après un oui clair de l\'utilisateur, et annuler_action s\'il refuse. L\'utilisateur peut aussi confirmer avec les boutons à l\'écran. Ne dis jamais qu\'une action est faite avant d\'avoir reçu le résultat de confirmer_action. Pour un rendez-vous en visio, précise à la fin que la fiche est prête pour envoyer le lien démo depuis Jarvis.';
-const REGLES_MEMOIRE = ' Tu as une mémoire personnelle propre à cet utilisateur. Quand il te demande de retenir quelque chose, ou te corrige sur une manière de faire durable, appelle retenir (catégorie préférence, règle ou fait ; une phrase courte et claire) puis dis-lui en quelques mots ce que tu as retenu. Appelle oublier s\'il te demande d\'oublier quelque chose. Ne retiens jamais de mot de passe, de donnée bancaire ni d\'information sensible inutile.';
+const REGLES_MEMOIRE = ' Tu as une mémoire personnelle propre à cet utilisateur, en deux parties : "profil" (son ton, ses habitudes, comment il aime que tu répondes, ses infos personnelles importantes) et "long_terme" (les éléments importants à garder). Quand il te demande de retenir quelque chose, ou te corrige sur une manière de faire durable, appelle retenir (catégorie profil ou long_terme ; une phrase courte et claire) puis dis-lui en quelques mots ce que tu as retenu. Appelle oublier s\'il te demande d\'oublier quelque chose. Ne retiens jamais de mot de passe, de donnée bancaire ni d\'information sensible inutile. Adapte-toi à ce que tu sais déjà de lui.';
 let MEMOIRE = null;
 function consigneDuJour() {
   const d = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' });
-  const mem = (MEMOIRE && MEMOIRE.length) ? ' Ce que tu sais déjà de cet utilisateur et dois respecter : ' + MEMOIRE.map(x => '(' + x.categorie + ') ' + x.contenu).join(' ; ') + '.' : '';
-  return CONSIGNE + ' Nous sommes le ' + d + '. ' + REGLES_OUTILS + REGLES_MEMOIRE + mem;
+  const m = MEMOIRE || {};
+  const persona = m.base && m.base.trim() ? IDENTITE + m.base.trim() : CONSIGNE;
+  let mem = '';
+  if (m.profil) mem += ' Profil de cet utilisateur (à respecter) : ' + m.profil.replace(/\n/g, ' ') + '.';
+  if (m.long_terme) mem += ' Mémoire long terme : ' + m.long_terme.replace(/\n/g, ' ') + '.';
+  if (m.historique) mem += ' Tes dernières sessions avec lui : ' + m.historique.replace(/\n/g, ' ') + '.';
+  return persona + ' Nous sommes le ' + d + '. ' + REGLES_OUTILS + REGLES_MEMOIRE + mem;
 }
 async function chargerMemoire() {
   try { const r = await api({ action: 'memoire', token: TOKEN }); if (r.ok) MEMOIRE = r.donnees; } catch (e) {}
@@ -80,7 +86,7 @@ const OUTILS = [
   { name: 'agenda', description: 'Liste les rendez-vous et événements à venir (rendez-vous des fiches + Google Agenda).', parameters: { type: 'OBJECT', properties: { jours: { type: 'INTEGER', description: 'Nombre de jours à regarder (défaut 14)' } } } },
   { name: 'preparer_rdv', description: 'Prépare un rendez-vous sur une fiche SANS l\'enregistrer : renvoie un résumé à faire confirmer.', parameters: { type: 'OBJECT', properties: { id_fiche: { type: 'STRING' }, date: { type: 'STRING', description: 'AAAA-MM-JJ' }, heure: { type: 'STRING', description: 'ex : 10h00' }, type: { type: 'STRING', description: 'ex : démo visio, rendez-vous physique, appel' }, note: { type: 'STRING' } }, required: ['id_fiche', 'date', 'heure'] } },
   { name: 'confirmer_action', description: 'Exécute l\'action préparée, UNIQUEMENT après un oui clair de l\'utilisateur.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } },
-  { name: 'retenir', description: 'Enregistre dans ta mémoire personnelle (propre à cet utilisateur) une préférence, une règle ou un fait durable.', parameters: { type: 'OBJECT', properties: { categorie: { type: 'STRING', description: 'préférence, règle ou fait' }, contenu: { type: 'STRING', description: 'Une phrase courte' } }, required: ['contenu'] } },
+  { name: 'retenir', description: 'Enregistre dans ta mémoire personnelle (propre à cet utilisateur) une préférence, une règle ou un fait durable.', parameters: { type: 'OBJECT', properties: { categorie: { type: 'STRING', description: 'profil ou long_terme' }, contenu: { type: 'STRING', description: 'Une phrase courte' } }, required: ['contenu'] } },
   { name: 'oublier', description: 'Supprime de ta mémoire les éléments contenant ce texte.', parameters: { type: 'OBJECT', properties: { contient: { type: 'STRING' } }, required: ['contient'] } },
   { name: 'annuler_action', description: 'Annule l\'action préparée.', parameters: { type: 'OBJECT', properties: { id_confirmation: { type: 'STRING' } }, required: ['id_confirmation'] } }
 ];
@@ -220,7 +226,18 @@ async function connexion() {
   } catch (e) { erreur('Connexion impossible : ' + e.message); }
 }
 
+let DEBUT_SESSION = null, TRANSCRIPT = [];
+// Envoie le resume de fin de session (une seule fois) : le serveur l'ajoute a HISTORIQUE.md et a la memoire long terme.
+function cloturerSession() {
+  if (!DEBUT_SESSION || !TOKEN) return;
+  const corps = JSON.stringify({ action: 'cloturer_session', token: TOKEN, debut: DEBUT_SESSION.toISOString(), fin: new Date().toISOString(), transcript: TRANSCRIPT });
+  DEBUT_SESSION = null; TRANSCRIPT = [];
+  try { fetch(URL_API, { method: 'POST', body: corps, keepalive: true }).then(() => chargerMemoire()).catch(() => {}); } catch (e) {}
+}
+window.addEventListener('pagehide', cloturerSession);
+
 function ajouterMessage(classe, texte) {
+  TRANSCRIPT.push({ qui: classe, texte: texte });
   const d = document.createElement('div');
   d.className = 'msg ' + classe; d.textContent = texte;
   const c = document.getElementById('conv'); c.appendChild(d); c.scrollTop = c.scrollHeight;
@@ -274,7 +291,7 @@ async function demarrer() {
     WS.onmessage = async ev => {
       let txt = ev.data; if (txt instanceof Blob) txt = await txt.text();
       const m = JSON.parse(txt);
-      if (m.setupComplete) { statut('Je t\'écoute — parle quand tu veux.'); demarrerMicro(); document.getElementById('btn-arreter').style.display = ''; bouton.style.display = 'none'; }
+      if (m.setupComplete) { DEBUT_SESSION = new Date(); TRANSCRIPT = []; statut('Je t\'écoute — parle quand tu veux.'); demarrerMicro(); document.getElementById('btn-arreter').style.display = ''; bouton.style.display = 'none'; }
       if (m.toolCall && m.toolCall.functionCalls) { traiterAppelsOutils(m.toolCall.functionCalls); return; }
       const sc = m.serverContent;
       if (!sc) return;
@@ -331,6 +348,7 @@ function jouer(b64) {
 }
 
 function nettoyer() {
+  cloturerSession();
   try { if (PROC) PROC.disconnect(); if (SRC) SRC.disconnect(); } catch (e) {}
   try { if (FLUX) FLUX.getTracks().forEach(t => t.stop()); } catch (e) {}
   try { if (CTX) CTX.close(); } catch (e) {}
