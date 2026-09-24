@@ -104,7 +104,6 @@ async function connexion() {
   try {
     const j = await api({ action: 'login', nom: document.getElementById('nom').value, motDePasse: document.getElementById('mdp').value });
     if (!j.ok) { erreur(j.erreur || 'Connexion refusée'); return; }
-    if (j.role !== 'admin') { erreur('Accès réservé à l\'Admin pour le moment'); return; }
     TOKEN = j.token;
     document.getElementById('bloc-login').style.display = 'none';
     document.getElementById('bloc-assistante').style.display = '';
