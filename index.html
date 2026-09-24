@@ -232,6 +232,24 @@ function nettoyer() {
   preparer();
 }
 function arreter() { try { if (WS) WS.close(1000); } catch (e) {} nettoyer(); }
+
+// Ouverture depuis Jarvis : la session arrive dans le fragment d'URL (#t=...), qui n'est jamais envoye
+// au serveur ; on l'efface aussitot de la barre d'adresse. Si elle est invalide, on garde la connexion.
+(async function () {
+  const m = location.hash.match(/[#&]t=([^&]+)/);
+  if (!m) return;
+  const t = decodeURIComponent(m[1]);
+  try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+  try {
+    const r = await api({ action: 'modeles', token: t });
+    if (!r.ok) return;
+    TOKEN = t;
+    document.getElementById('bloc-login').style.display = 'none';
+    document.getElementById('bloc-assistante').style.display = '';
+    journal('OK', 'ouverte depuis Jarvis');
+    preparer();
+  } catch (e) {}
+})();
 </script>
 </body>
 </html>
