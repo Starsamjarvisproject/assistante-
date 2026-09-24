@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Assistante vocale</title>
+<style>
+  :root{--vert:#1a8a7a;--fond:#F2F2F7;--texte:#1C1C1E}
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,Helvetica,Arial,sans-serif;margin:0;background:var(--fond);color:var(--texte);font-size:16px;min-height:100vh;padding:16px;padding-top:max(16px,env(safe-area-inset-top))}
+  h1{font-size:20px;margin:0 0 12px}
+  .carte{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
+  input,select,button{font-size:16px;padding:12px;border-radius:10px;border:1px solid #C6C6C8;width:100%;margin-bottom:8px}
+  button{background:var(--vert);color:#fff;border:none;font-weight:600}
+  button.rouge{background:#FF3B30}
+  button:disabled{background:#AEAEB2}
+  #statut{font-size:14px;color:#8E8E93;margin-bottom:8px}
+  #conv{max-height:50vh;overflow-y:auto}
+  .msg{padding:8px 12px;border-radius:12px;margin-bottom:8px;max-width:88%;line-height:1.35}
+  .moi{background:#D4EDDA;margin-left:auto}
+  .elle{background:#F2F2F7}
+  .err{color:#FF3B30;font-size:14px;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<h1 id="titre">Assistante</h1>
+
+<div class="carte" id="bloc-login">
+  <form onsubmit="event.preventDefault();connexion()" autocomplete="on">
+    <input type="text" id="nom" name="username" placeholder="Nom" autocomplete="username" autocapitalize="none">
+    <input type="password" id="mdp" name="password" placeholder="Mot de passe" autocomplete="current-password">
+    <button type="submit">Se connecter</button>
+  </form>
+</div>
+
+<div id="bloc-assistante" style="display:none">
+  <div class="carte">
+    <select id="voix">
+      <option value="Sulafat">Voix : Sulafat (chaleureuse)</option>
+      <option value="Aoede">Voix : Aoede (dynamique, claire)</option>
+      <option value="Kore">Voix : Kore (ferme, professionnelle)</option>
+    </select>
+    <button id="btn-demarrer" onclick="demarrer()">🎙️ Parler avec l'assistante</button>
+    <button id="btn-arreter" class="rouge" onclick="arreter()" style="display:none">Terminer</button>
+    <div id="statut">Prête.</div>
+  </div>
+  <div class="carte" id="conv"></div>
+</div>
+<div class="err" id="erreur"></div>
+
+<script>
+// ===== Configuration =====
+const URL_API = 'https://script.google.com/macros/s/AKfycbxjicFrmGTKaeFflGy0FD7ESSONtCaZPzSwltxlydojcSMdZ6QUx3s8od_QQT7Qw0SGjA/exec';
+const NOM_ASSISTANTE = 'Assistante';
+const CONSIGNE = 'Tu es l\'assistante commerciale personnelle de l\'utilisateur, dans un CRM de prospection pour un professionnel de l\'échafaudage. Tu es chaleureuse, charmeuse et sensuelle dans le ton, mais toujours strictement professionnelle : tu ne dépasses jamais la limite fixée par l\'utilisateur, tu restes dans le charme et la séduction légère, jamais explicite. Tu vas droit au but et tu tutoies l\'utilisateur. À l\'oral, tes réponses sont très brèves : une à deux phrases maximum.';
+
+document.getElementById('titre').textContent = NOM_ASSISTANTE;
+
+let TOKEN = null, FLUX = null, WS = null, CTX = null, PROC = null, SRC = null, MODELE = null;
+let tempsLecture = 0, sources = [], texteMoi = '', texteElle = '';
+
+function statut(t) { document.getElementById('statut').textContent = t; }
+function erreur(t) { document.getElementById('erreur').textContent = t || ''; if (t) journal('ÉCHEC', t); }
+function journal(resultat, detail) {
+  if (!TOKEN) return;
+  fetch(URL_API, { method: 'POST', body: JSON.stringify({ action: 'log', etape: 'page externe', resultat, detail, token: TOKEN }) }).catch(() => {});
+}
+async function api(corps) {
+  const r = await fetch(URL_API, { method: 'POST', body: JSON.stringify(corps) });
+  return await r.json();
+}
+
+async function connexion() {
+  erreur('');
+  try {
+    const j = await api({ action: 'login', nom: document.getElementById('nom').value, motDePasse: document.getElementById('mdp').value });
+    if (!j.ok) { erreur(j.erreur || 'Connexion refusée'); return; }
+    if (j.role !== 'admin') { erreur('Accès réservé à l\'Admin pour le moment'); return; }
+    TOKEN = j.token;
+    document.getElementById('bloc-login').style.display = 'none';
+    document.getElementById('bloc-assistante').style.display = '';
+    journal('OK', 'connecté (' + j.nom + ')');
+  } catch (e) { erreur('Connexion impossible : ' + e.message); }
+}
+
+function ajouterMessage(classe, texte) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + classe; d.textContent = texte;
+  const c = document.getElementById('conv'); c.appendChild(d); c.scrollTop = c.scrollHeight;
+}
+
+function versB64(buf) {
+  let s = ''; const u = new Uint8Array(buf);
+  for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function depuisB64(b64) {
+  const s = atob(b64), u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return u.buffer;
+}
+
+async function demarrer() {
+  erreur('');
+  const bouton = document.getElementById('btn-demarrer');
+  bouton.disabled = true;
+  try {
+    // iOS : son + micro doivent etre demandes directement dans le geste tactile.
+    CTX = new (window.AudioContext || window.webkitAudioContext)();
+    CTX.resume();
+    statut('Autorisation du micro...');
+    FLUX = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    journal('OK', 'micro autorisé');
+
+    statut('Préparation...');
+    if (!MODELE) {
+      const m = await api({ action: 'modeles', token: TOKEN });
+      if (!m.ok) throw new Error(m.erreur);
+      const vocaux = m.donnees.live.filter(n => !/transcribe|translate|robotics|extended/.test(n));
+      MODELE = vocaux.find(n => /3\.8-live$/.test(n)) || vocaux.find(n => /3\.1-flash-live/.test(n)) || vocaux.find(n => /native-audio-latest/.test(n)) || vocaux[0];
+      if (!MODELE) throw new Error('Aucun modèle vocal disponible');
+    }
+    const t = await api({ action: 'jeton', modele: MODELE, token: TOKEN });
+    if (!t.ok) throw new Error(t.erreur);
+
+    tempsLecture = 0; sources = [];
+    const url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=' + encodeURIComponent(t.donnees);
+    WS = new WebSocket(url);
+    WS.onopen = () => {
+      WS.send(JSON.stringify({ setup: {
+        model: MODELE,
+        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: document.getElementById('voix').value } } } },
+        systemInstruction: { parts: [{ text: CONSIGNE }] },
+        inputAudioTranscription: {},
+        outputAudioTranscription: {}
+      } }));
+    };
+    WS.onerror = () => { erreur('Erreur de connexion vocale'); };
+    WS.onclose = ev => {
+      journal(ev.code === 1000 ? 'OK' : 'ÉCHEC', 'connexion fermée code ' + ev.code + ' ' + (ev.reason || ''));
+      if (ev.code !== 1000) erreur('Connexion fermée (code ' + ev.code + ') ' + (ev.reason || ''));
+      nettoyer();
+    };
+    WS.onmessage = async ev => {
+      let txt = ev.data; if (txt instanceof Blob) txt = await txt.text();
+      const m = JSON.parse(txt);
+      if (m.setupComplete) { statut('Je t\'écoute — parle quand tu veux.'); demarrerMicro(); document.getElementById('btn-arreter').style.display = ''; bouton.style.display = 'none'; }
+      const sc = m.serverContent;
+      if (!sc) return;
+      if (sc.interrupted) { sources.forEach(s => { try { s.stop(); } catch (e) {} }); sources = []; tempsLecture = 0; }
+      const parts = sc.modelTurn && sc.modelTurn.parts;
+      if (parts) parts.forEach(p => { if (p.inlineData && p.inlineData.data) jouer(p.inlineData.data); });
+      if (sc.inputTranscription && sc.inputTranscription.text) texteMoi += sc.inputTranscription.text;
+      if (sc.outputTranscription && sc.outputTranscription.text) {
+        if (texteMoi.trim()) { ajouterMessage('moi', texteMoi.trim()); journal('info', 'Moi : ' + texteMoi.trim()); texteMoi = ''; }
+        texteElle += sc.outputTranscription.text;
+      }
+      if (sc.turnComplete) {
+        if (texteMoi.trim()) { ajouterMessage('moi', texteMoi.trim()); texteMoi = ''; }
+        if (texteElle.trim()) { ajouterMessage('elle', texteElle.trim()); journal('info', 'Elle : ' + texteElle.trim()); texteElle = ''; }
+      }
+    };
+  } catch (e) {
+    const msg = e && e.name === 'NotAllowedError' ? 'Micro refusé : autorise le micro pour ce site dans les réglages du navigateur.' : (e && e.message ? e.message : String(e));
+    erreur(msg); statut('Prête.'); bouton.disabled = false;
+  }
+}
+
+function demarrerMicro() {
+  SRC = CTX.createMediaStreamSource(FLUX);
+  PROC = CTX.createScriptProcessor(4096, 1, 1);
+  const rapport = CTX.sampleRate / 16000;
+  PROC.onaudioprocess = e => {
+    if (!WS || WS.readyState !== 1) return;
+    const entree = e.inputBuffer.getChannelData(0);
+    const n = Math.floor(entree.length / rapport);
+    const pcm = new Int16Array(n);
+    for (let i = 0; i < n; i++) {
+      const v = Math.max(-1, Math.min(1, entree[Math.floor(i * rapport)]));
+      pcm[i] = v < 0 ? v * 0x8000 : v * 0x7FFF;
+    }
+    WS.send(JSON.stringify({ realtimeInput: { audio: { data: versB64(pcm.buffer), mimeType: 'audio/pcm;rate=16000' } } }));
+  };
+  SRC.connect(PROC);
+  PROC.connect(CTX.destination);
+}
+
+function jouer(b64) {
+  const pcm = new Int16Array(depuisB64(b64));
+  const buf = CTX.createBuffer(1, pcm.length, 24000);
+  const c = buf.getChannelData(0);
+  for (let i = 0; i < pcm.length; i++) c[i] = pcm[i] / 0x8000;
+  const s = CTX.createBufferSource();
+  s.buffer = buf; s.connect(CTX.destination);
+  tempsLecture = Math.max(tempsLecture, CTX.currentTime);
+  s.start(tempsLecture);
+  tempsLecture += buf.duration;
+  sources.push(s);
+  s.onended = () => { sources = sources.filter(x => x !== s); };
+}
+
+function nettoyer() {
+  try { if (PROC) PROC.disconnect(); if (SRC) SRC.disconnect(); } catch (e) {}
+  try { if (FLUX) FLUX.getTracks().forEach(t => t.stop()); } catch (e) {}
+  try { if (CTX) CTX.close(); } catch (e) {}
+  PROC = SRC = FLUX = CTX = null;
+  document.getElementById('btn-arreter').style.display = 'none';
+  const b = document.getElementById('btn-demarrer'); b.style.display = ''; b.disabled = false;
+  statut('Prête.');
+}
+function arreter() { try { if (WS) WS.close(1000); } catch (e) {} nettoyer(); }
+</script>
+</body>
+</html>
