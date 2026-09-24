@@ -56,7 +56,36 @@ const CONSIGNE = 'Tu es l\'assistante commerciale personnelle de l\'utilisateur,
 
 document.getElementById('titre').textContent = NOM_ASSISTANTE;
 
-let TOKEN = null, FLUX = null, WS = null, CTX = null, PROC = null, SRC = null, MODELE = null;
+let TOKEN = null, FLUX = null, WS = null, CTX = null, PROC = null, SRC = null, MODELE = null, JETON_PRET = null;
+try { MODELE = localStorage.getItem('modele_live') || null; } catch (e) {}
+
+// Prepare en arriere-plan le modele et le jeton temporaire (usage unique, valable 10 min pour ouvrir
+// une session) pour que le bouton "Parler" demarre presque instantanement.
+async function preparer() {
+  try {
+    if (!MODELE) {
+      const m = await api({ action: 'modeles', token: TOKEN });
+      if (!m.ok) return;
+      const vocaux = m.donnees.live.filter(n => !/transcribe|translate|robotics|extended/.test(n));
+      MODELE = vocaux.find(n => /3\.8-live$/.test(n)) || vocaux.find(n => /3\.1-flash-live/.test(n)) || vocaux.find(n => /native-audio-latest/.test(n)) || vocaux[0] || null;
+      if (MODELE) { try { localStorage.setItem('modele_live', MODELE); } catch (e) {} }
+    }
+    if (!MODELE) return;
+    const t = await api({ action: 'jeton', modele: MODELE, token: TOKEN });
+    if (t.ok) JETON_PRET = { jeton: t.donnees, quand: Date.now() };
+  } catch (e) {}
+}
+async function obtenirJeton() {
+  if (JETON_PRET && Date.now() - JETON_PRET.quand < 8 * 60 * 1000) {
+    const j = JETON_PRET.jeton; JETON_PRET = null; return j;
+  }
+  JETON_PRET = null;
+  if (!MODELE) await preparer();
+  if (!MODELE) throw new Error('Aucun modèle vocal disponible');
+  const t = await api({ action: 'jeton', modele: MODELE, token: TOKEN });
+  if (!t.ok) throw new Error(t.erreur);
+  return t.donnees;
+}
 let tempsLecture = 0, sources = [], texteMoi = '', texteElle = '';
 
 function statut(t) { document.getElementById('statut').textContent = t; }
@@ -80,6 +109,7 @@ async function connexion() {
     document.getElementById('bloc-login').style.display = 'none';
     document.getElementById('bloc-assistante').style.display = '';
     journal('OK', 'connecté (' + j.nom + ')');
+    preparer();
   } catch (e) { erreur('Connexion impossible : ' + e.message); }
 }
 
@@ -112,19 +142,11 @@ async function demarrer() {
     FLUX = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
     journal('OK', 'micro autorisé');
 
-    statut('Préparation...');
-    if (!MODELE) {
-      const m = await api({ action: 'modeles', token: TOKEN });
-      if (!m.ok) throw new Error(m.erreur);
-      const vocaux = m.donnees.live.filter(n => !/transcribe|translate|robotics|extended/.test(n));
-      MODELE = vocaux.find(n => /3\.8-live$/.test(n)) || vocaux.find(n => /3\.1-flash-live/.test(n)) || vocaux.find(n => /native-audio-latest/.test(n)) || vocaux[0];
-      if (!MODELE) throw new Error('Aucun modèle vocal disponible');
-    }
-    const t = await api({ action: 'jeton', modele: MODELE, token: TOKEN });
-    if (!t.ok) throw new Error(t.erreur);
+    statut('Connexion...');
+    const jeton = await obtenirJeton();
 
     tempsLecture = 0; sources = [];
-    const url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=' + encodeURIComponent(t.donnees);
+    const url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=' + encodeURIComponent(jeton);
     WS = new WebSocket(url);
     WS.onopen = () => {
       WS.send(JSON.stringify({ setup: {
@@ -162,7 +184,7 @@ async function demarrer() {
     };
   } catch (e) {
     const msg = e && e.name === 'NotAllowedError' ? 'Micro refusé : autorise le micro pour ce site dans les réglages du navigateur.' : (e && e.message ? e.message : String(e));
-    erreur(msg); statut('Prête.'); bouton.disabled = false;
+    erreur(msg); statut('Prête.'); bouton.disabled = false; MODELE = null; try { localStorage.removeItem('modele_live'); } catch (e2) {}
   }
 }
 
@@ -207,6 +229,7 @@ function nettoyer() {
   document.getElementById('btn-arreter').style.display = 'none';
   const b = document.getElementById('btn-demarrer'); b.style.display = ''; b.disabled = false;
   statut('Prête.');
+  preparer();
 }
 function arreter() { try { if (WS) WS.close(1000); } catch (e) {} nettoyer(); }
 </script>
