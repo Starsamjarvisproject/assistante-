@@ -342,6 +342,20 @@ function nettoyer() {
 }
 function arreter() { try { if (WS) WS.close(1000); } catch (e) {} nettoyer(); }
 
+// Rechargement automatique quand une nouvelle version est deployee (jamais pendant une conversation).
+let VERSION_CHARGEE = null;
+async function verifierVersion() {
+  try {
+    const r = await api({ action: 'version' });
+    if (!r.ok) return;
+    if (VERSION_CHARGEE === null) { VERSION_CHARGEE = r.donnees; return; }
+    if (r.donnees !== VERSION_CHARGEE && !(WS && WS.readyState === 1)) location.reload();
+  } catch (e) {}
+}
+verifierVersion();
+setInterval(verifierVersion, 20 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) verifierVersion(); });
+
 // Ouverture depuis Jarvis : la session arrive dans le fragment d'URL (#t=...), qui n'est jamais envoye
 // au serveur ; on l'efface aussitot de la barre d'adresse. Si elle est invalide, on garde la connexion.
 (async function () {
