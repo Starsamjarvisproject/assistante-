@@ -40,6 +40,12 @@
   </form>
 </div>
 
+<div id="zone-flottante" class="carte" style="display:none">
+  <div style="margin-bottom:8px">SIA est dans la fenêtre flottante.</div>
+  <button id="btn-rappeler">Ramener SIA ici</button>
+</div>
+<div id="barre-flottante" style="display:none"><button id="btn-flottante">🗗 Fenêtre flottante (reste devant toutes les pages)</button></div>
+
 <div id="bloc-assistante" style="display:none">
   <div class="carte">
     <select id="voix">
@@ -47,8 +53,8 @@
       <option value="Aoede">Voix : Aoede (dynamique, claire)</option>
       <option value="Kore">Voix : Kore (ferme, professionnelle)</option>
     </select>
-    <button id="btn-demarrer" onclick="demarrer()">🎙️ Parler avec SIA</button>
-    <button id="btn-arreter" class="rouge" onclick="arreter()" style="display:none">Terminer</button>
+    <button id="btn-demarrer">🎙️ Parler avec SIA</button>
+    <button id="btn-arreter" class="rouge" style="display:none">Terminer</button>
     <div id="statut">Prête.</div>
   </div>
   <div class="carte" id="conv"></div>
@@ -56,15 +62,18 @@
 <div class="err" id="erreur"></div>
 
 <script>
+// Les elements de l'interface peuvent vivre dans la fenetre flottante (autre document) : on les cherche partout.
+let PIP = null;
+const $ = id => (PIP && PIP.document.getElementById(id)) || document.getElementById(id);
 // ===== Configuration =====
 const URL_API = 'https://script.google.com/macros/s/AKfycbxjicFrmGTKaeFflGy0FD7ESSONtCaZPzSwltxlydojcSMdZ6QUx3s8od_QQT7Qw0SGjA/exec';
 const NOM_ASSISTANTE = 'SIA';
 const IDENTITE = 'Tu t\'appelles SIA (Supreme Intelligence Assistant). ';
 const CONSIGNE = IDENTITE + 'Tu es l\'assistante commerciale personnelle de l\'utilisateur, dans un CRM de prospection pour un professionnel de l\'échafaudage. Tu es chaleureuse, charmeuse et sensuelle dans le ton, mais toujours strictement professionnelle : tu ne dépasses jamais la limite fixée par l\'utilisateur, tu restes dans le charme et la séduction légère, jamais explicite. Tu vas droit au but et tu tutoies l\'utilisateur. À l\'oral, tes réponses sont très brèves : une à deux phrases maximum.';
 
-document.getElementById('titre').textContent = NOM_ASSISTANTE;
+$('titre').textContent = NOM_ASSISTANTE;
 
-const REGLES_OUTILS = 'Tu as accès aux fiches prospects, à l\'agenda et à la création de rendez-vous grâce à tes outils. Pour toute question sur une entreprise, utilise chercher_fiche : n\'invente jamais une information. S\'il y a plusieurs fiches possibles, demande laquelle. Pour créer un rendez-vous : trouve la fiche, appelle preparer_rdv (date au format AAAA-MM-JJ ; si l\'année n\'est pas dite, prends la prochaine date à venir), puis répète en une seule phrase courte le résumé et demande confirmation. N\'appelle confirmer_action qu\'après un oui clair de l\'utilisateur, et annuler_action s\'il refuse. L\'utilisateur peut aussi confirmer avec les boutons à l\'écran. Ne dis jamais qu\'une action est faite avant d\'avoir reçu le résultat de confirmer_action. Pour un rendez-vous en visio, précise à la fin que la fiche est prête pour envoyer le lien démo depuis Jarvis.';
+const REGLES_OUTILS = 'Tu as accès aux fiches prospects, à l\'agenda et à la création de rendez-vous grâce à tes outils. Pour toute question sur une entreprise, utilise chercher_fiche : n\'invente jamais une information. S\'il y a plusieurs fiches possibles, demande laquelle. Pour créer un rendez-vous : trouve la fiche, appelle preparer_rdv (date au format AAAA-MM-JJ ; si l\'année n\'est pas dite, prends la prochaine date à venir), puis répète en une seule phrase courte le résumé et demande confirmation. N\'appelle confirmer_action qu\'après un oui clair de l\'utilisateur, et annuler_action s\'il refuse. L\'utilisateur peut aussi confirmer avec les boutons à l\'écran. Ne dis jamais qu\'une action est faite avant d\'avoir reçu le résultat de confirmer_action. Pour un rendez-vous en visio, précise à la fin que la fiche est prête pour envoyer le lien démo depuis Prospect.';
 const REGLES_MEMOIRE = ' Tu as une mémoire personnelle propre à cet utilisateur, en deux parties : "profil" (son ton, ses habitudes, comment il aime que tu répondes, ses infos personnelles importantes) et "long_terme" (les éléments importants à garder). Quand il te demande de retenir quelque chose, ou te corrige sur une manière de faire durable, appelle retenir (catégorie profil ou long_terme ; une phrase courte et claire) puis dis-lui en quelques mots ce que tu as retenu. Appelle oublier s\'il te demande d\'oublier quelque chose. Ne retiens jamais de mot de passe, de donnée bancaire ni d\'information sensible inutile. Adapte-toi à ce que tu sais déjà de lui. Si l\'utilisateur te reproche ton ton, ta manière de parler ou une erreur, corrige-toi tout de suite et enregistre-le dans son profil avec retenir, sans lui demander la permission, pour ne plus refaire cette erreur. S\'il te donne trois fois de suite la même consigne, retiens-la pour l\'appliquer d\'office ensuite. Au début (tant que ton profil ne dit pas qu\'il préfère sans récap), fais un récapitulatif très court de ce que tu as compris avant d\'agir ; quand ton profil indique qu\'il préfère que tu enchaînes, enchaîne. Tout ce que tu crées ou modifies est fait au nom de l\'utilisateur connecté (ses fiches), et s\'affiche à l\'écran. Écrire dans une case vide est permis ; modifier ou supprimer une donnée existante exige sa confirmation explicite ; si une fiche existe déjà, dis-le au lieu d\'en créer une autre. Deux confirmations sont nécessaires pour toute suppression.';
 const REGLES_SKILLS = ' Tes compétences sont des skills (notes de procédure dans ton dossier). Avant une demande d\'action, regarde ton index de skills et lis le skill correspondant avec lire_skill si besoin. Si aucun skill ne couvre la demande, dis honnêtement que tu ne sais pas encore le faire ; si l\'utilisateur t\'explique comment procéder, propose le skill avec proposer_skill (nom court, résumé, étapes) : il n\'est écrit qu\'après son oui. Réfléchis en permanence à ce qui te permettrait de mieux le servir : quand un skill, un outil ou une meilleure façon de faire te manque, propose-le à voix haute et note-le avec proposer_idee. Un skill ne te donne AUCUN pouvoir supplémentaire : n\'affirme jamais pouvoir exécuter une action qui n\'existe pas dans tes outils. Suppressions : un rendez-vous peut être modifié ou supprimé (preparer_modification_rdv, preparer_suppression_rdv) avec confirmation ; une fiche entière uniquement sur un ordre explicite de l\'utilisateur (preparer_suppression_fiche) avec confirmation ; jamais de ta propre initiative. Ne t\'invente jamais un fait, ne mens jamais : dis la vérité, y compris quand tu ne sais pas.';
 let MEMOIRE = null;
@@ -108,7 +117,7 @@ function el(tag, classe, texte) {
   return e;
 }
 function ajouterCarte(noeud) {
-  const c = document.getElementById('conv');
+  const c = $('conv');
   c.appendChild(noeud); c.scrollTop = c.scrollHeight;
 }
 function carteFiche(f) {
@@ -215,8 +224,8 @@ async function obtenirJeton() {
 }
 let tempsLecture = 0, sources = [], texteMoi = '', texteElle = '';
 
-function statut(t) { document.getElementById('statut').textContent = t; }
-function erreur(t) { document.getElementById('erreur').textContent = t || ''; if (t) journal('ÉCHEC', t); }
+function statut(t) { $('statut').textContent = t; }
+function erreur(t) { $('erreur').textContent = t || ''; if (t) journal('ÉCHEC', t); }
 function journal(resultat, detail) {
   if (!TOKEN) return;
   fetch(URL_API, { method: 'POST', body: JSON.stringify({ action: 'log', etape: 'page externe', resultat, detail, token: TOKEN }) }).catch(() => {});
@@ -229,11 +238,11 @@ async function api(corps) {
 async function connexion() {
   erreur('');
   try {
-    const j = await api({ action: 'login', nom: document.getElementById('nom').value, motDePasse: document.getElementById('mdp').value });
+    const j = await api({ action: 'login', nom: $('nom').value, motDePasse: $('mdp').value });
     if (!j.ok) { erreur(j.erreur || 'Connexion refusée'); return; }
     TOKEN = j.token;
-    document.getElementById('bloc-login').style.display = 'none';
-    document.getElementById('bloc-assistante').style.display = '';
+    $('bloc-login').style.display = 'none';
+    $('bloc-assistante').style.display = ''; if (PIP_DISPONIBLE && !PIP) $('barre-flottante').style.display = '';
     journal('OK', 'connecté (' + j.nom + ')');
     preparer();
   } catch (e) { erreur('Connexion impossible : ' + e.message); }
@@ -253,7 +262,7 @@ function ajouterMessage(classe, texte) {
   TRANSCRIPT.push({ qui: classe, texte: texte });
   const d = document.createElement('div');
   d.className = 'msg ' + classe; d.textContent = texte;
-  const c = document.getElementById('conv'); c.appendChild(d); c.scrollTop = c.scrollHeight;
+  const c = $('conv'); c.appendChild(d); c.scrollTop = c.scrollHeight;
 }
 
 function versB64(buf) {
@@ -268,8 +277,10 @@ function depuisB64(b64) {
 }
 
 async function demarrer() {
+  // Le clic sur "Parler" ouvre aussi la fenetre flottante (Chrome ordinateur) : l'ouverture doit se faire tout de suite, dans le geste.
+  if (PIP_DISPONIBLE && !PIP) ouvrirFlottante();
   erreur('');
-  const bouton = document.getElementById('btn-demarrer');
+  const bouton = $('btn-demarrer');
   bouton.disabled = true;
   try {
     // iOS : son + micro doivent etre demandes directement dans le geste tactile.
@@ -283,7 +294,7 @@ async function demarrer() {
     const jeton = await obtenirJeton();
     // La voix inscrite dans le profil ("- Voix : X", choisie par l'utilisateur ou par SIA) prime sur le selecteur.
     const mVoix = MEMOIRE && MEMOIRE.profil ? MEMOIRE.profil.match(/^- Voix : (\w+)/m) : null;
-    if (mVoix && ['Sulafat', 'Aoede', 'Kore'].indexOf(mVoix[1]) !== -1) document.getElementById('voix').value = mVoix[1];
+    if (mVoix && ['Sulafat', 'Aoede', 'Kore'].indexOf(mVoix[1]) !== -1) $('voix').value = mVoix[1];
 
     tempsLecture = 0; sources = [];
     const url = 'wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContentConstrained?access_token=' + encodeURIComponent(jeton);
@@ -291,7 +302,7 @@ async function demarrer() {
     WS.onopen = () => {
       WS.send(JSON.stringify({ setup: {
         model: MODELE,
-        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: document.getElementById('voix').value } } } },
+        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: $('voix').value } } } },
         systemInstruction: { parts: [{ text: consigneDuJour() }] },
         tools: [{ functionDeclarations: OUTILS }],
         inputAudioTranscription: {},
@@ -307,7 +318,7 @@ async function demarrer() {
     WS.onmessage = async ev => {
       let txt = ev.data; if (txt instanceof Blob) txt = await txt.text();
       const m = JSON.parse(txt);
-      if (m.setupComplete) { DEBUT_SESSION = new Date(); TRANSCRIPT = []; statut('Je t\'écoute — parle quand tu veux.'); demarrerMicro(); document.getElementById('btn-arreter').style.display = ''; bouton.style.display = 'none'; }
+      if (m.setupComplete) { DEBUT_SESSION = new Date(); TRANSCRIPT = []; statut('Je t\'écoute — parle quand tu veux.'); demarrerMicro(); $('btn-arreter').style.display = ''; bouton.style.display = 'none'; }
       if (m.toolCall && m.toolCall.functionCalls) { traiterAppelsOutils(m.toolCall.functionCalls); return; }
       const sc = m.serverContent;
       if (!sc) return;
@@ -369,12 +380,44 @@ function nettoyer() {
   try { if (FLUX) FLUX.getTracks().forEach(t => t.stop()); } catch (e) {}
   try { if (CTX) CTX.close(); } catch (e) {}
   PROC = SRC = FLUX = CTX = null;
-  document.getElementById('btn-arreter').style.display = 'none';
-  const b = document.getElementById('btn-demarrer'); b.style.display = ''; b.disabled = false;
+  $('btn-arreter').style.display = 'none';
+  const b = $('btn-demarrer'); b.style.display = ''; b.disabled = false;
   statut('Prête.');
   preparer();
 }
 function arreter() { try { if (WS) WS.close(1000); } catch (e) {} nettoyer(); }
+
+// ===== Fenetre flottante (Chrome ordinateur : reste au-dessus de toutes les fenetres) =====
+const PIP_DISPONIBLE = 'documentPictureInPicture' in window;
+async function ouvrirFlottante() {
+  if (!PIP_DISPONIBLE || PIP) return;
+  let fenetre;
+  try { fenetre = await documentPictureInPicture.requestWindow({ width: 380, height: 620 }); } catch (e) { return; }
+  document.querySelectorAll('style').forEach(s => fenetre.document.head.appendChild(s.cloneNode(true)));
+  fenetre.document.title = 'SIA';
+  fenetre.document.body.style.cssText = 'margin:0;padding:12px;background:#F2F2F7;font-family:-apple-system,Helvetica,Arial,sans-serif';
+  const bloc = document.getElementById('bloc-assistante'), err = document.getElementById('erreur');
+  fenetre.document.body.appendChild(bloc);
+  fenetre.document.body.appendChild(err);
+  PIP = fenetre;
+  document.getElementById('zone-flottante').style.display = '';
+  document.getElementById('barre-flottante').style.display = 'none';
+  fenetre.addEventListener('pagehide', ramenerFlottante);
+}
+function ramenerFlottante() {
+  if (!PIP) return;
+  const f = PIP; PIP = null;
+  const bloc = f.document.getElementById('bloc-assistante'), err = f.document.getElementById('erreur');
+  const ancre = document.getElementById('zone-flottante');
+  if (bloc) ancre.parentNode.insertBefore(bloc, ancre.nextSibling);
+  if (err) document.body.appendChild(err);
+  ancre.style.display = 'none';
+  if (PIP_DISPONIBLE && TOKEN) document.getElementById('barre-flottante').style.display = '';
+}
+$('btn-demarrer').addEventListener('click', demarrer);
+$('btn-arreter').addEventListener('click', arreter);
+$('btn-flottante').addEventListener('click', ouvrirFlottante);
+$('btn-rappeler').addEventListener('click', () => { if (PIP) PIP.close(); });
 
 // Rechargement automatique quand une nouvelle version est deployee (jamais pendant une conversation).
 let VERSION_CHARGEE = null;
@@ -386,9 +429,20 @@ async function verifierVersion() {
     if (r.donnees !== VERSION_CHARGEE && !(WS && WS.readyState === 1)) location.reload();
   } catch (e) {}
 }
-verifierVersion();
-setInterval(verifierVersion, 20 * 1000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) verifierVersion(); });
+// La page elle-meme (GitHub) est aussi comparee a sa derniere version publiee : rechargement auto si elle a change.
+let EMPREINTE_PAGE = null;
+async function verifierPage() {
+  try {
+    const t = await (await fetch(location.pathname + '?v=' + Date.now(), { cache: 'no-store' })).text();
+    let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+    const e = t.length + ':' + h;
+    if (EMPREINTE_PAGE === null) { EMPREINTE_PAGE = e; return; }
+    if (e !== EMPREINTE_PAGE && !(WS && WS.readyState === 1)) location.reload();
+  } catch (e) {}
+}
+verifierVersion(); verifierPage();
+setInterval(() => { verifierVersion(); verifierPage(); }, 20 * 1000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { verifierVersion(); verifierPage(); } });
 
 // Ouverture depuis Jarvis : la session arrive dans le fragment d'URL (#t=...), qui n'est jamais envoye
 // au serveur ; on l'efface aussitot de la barre d'adresse. Si elle est invalide, on garde la connexion.
@@ -401,8 +455,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) veri
     const r = await api({ action: 'modeles', token: t });
     if (!r.ok) return;
     TOKEN = t;
-    document.getElementById('bloc-login').style.display = 'none';
-    document.getElementById('bloc-assistante').style.display = '';
+    $('bloc-login').style.display = 'none';
+    $('bloc-assistante').style.display = ''; if (PIP_DISPONIBLE && !PIP) $('barre-flottante').style.display = '';
     journal('OK', 'ouverte depuis Jarvis');
     preparer();
   } catch (e) {}
