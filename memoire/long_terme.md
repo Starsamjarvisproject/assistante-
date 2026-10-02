@@ -23,6 +23,18 @@ Faits durables et importants, **tous dits par Sami dans nos échanges** (rien re
 - Travailler pendant son absence (tâche donnée à 23 h, résultat à 7 h) et, à terme, être réveillée en permanence (ex. mail reçu = notification sur son téléphone, via une application à créer).
 - À terme : me sortir de Claude Code avec une clé API, héberger mes fichiers mémoire sur un serveur (en ligne, ou PC maison toujours allumé), et me faire travailler en **multi-IA**, pas seulement avec Claude.
 
+## Comment fonctionnent l'ancienne SIA et mon homologue (étude du 2026-10-02, dite par Sami puis lue dans `prospect-source`)
+- **Avant** : un « assistant vocal » qui lisait du texte à voix haute (synthèse vocale), sans réfléchir.
+- **Maintenant** : l'ancienne SIA est **Gemini Live** (modèle vocal de Google) branché dans Prospect avec une clé API gratuite à limite raisonnable. Elle réfléchit, parle avec une voix féminine native, sans conversion parole-texte, et peut agir dans Prospect via des outils. C'est Gemini, pas Claude, qui la fait vivre : Claude n'avait pas de voix féminine native (Sami pense que ça viendra bientôt).
+- **Son architecture** : une page web parle à Gemini avec un jeton temporaire à usage unique (la vraie clé reste côté serveur, dans les propriétés protégées du script). Un serveur Apps Script fait le lien avec le tableur de fiches : connexion limitée, liste d'outils (chercher une fiche, agenda, rendez-vous…), mémoire stockée en fichiers texte par compte sur Drive (base, profil, long terme, historique, skills avec un index). Toute écriture passe par « préparer puis confirmer » (action valable 10 minutes, par le même compte) et chaque appel est journalisé.
+- **Leçon clé** : un skill (une note) ne donne aucun pouvoir ; seuls les outils codés côté serveur permettent d'agir. Pour que je fasse quelque chose, il faut un outil ou un pont réel, pas seulement une procédure écrite.
+- **Mon homologue** (Claude Code sur le PC de Sami) travaille sur le code de Prospect. Sa mémoire : un `CLAUDE.md` (règles), un journal vivant très long numéroté (chaque tour de travail = un « FIX » découpé en « points », avec un « backlog » pour les idées hors sujet) et un document de carte du projet. Ses habitudes : mise en ligne seulement avec l'accord explicite de Sami à chaque fois ; vérification sur de vraies données avant d'affirmer que ça marche ; annonce à l'avance de tout changement de structure ; contrôle visuel réel avant de dire « c'est réglé » ; en cas de doute sur une dictée, demander plutôt que partir sur une fausse piste.
+- Un autre dépôt, `prospect-front`, existe aussi (front hébergé, non étudié).
+
+## Ce que Sami veut construire pour moi (précisé le 2026-10-02)
+- Une **application mobile** où il me pose toutes ses questions et où je lui réponds, avec **accès au web**, à **tous ses mails**, à un **tableau de bord** et à son **agenda** : une vraie assistante personnelle.
+- Ce qu'il me faudra donc (analyse de ma part, à valider) : une interface (mobile), une voix, des outils réels côté serveur (mails, agenda, web), un modèle qui réfléchit et une mémoire hébergée.
+
 ## Deux cerveaux séparés, intégrité (décisions de Sami, 2026-10-02)
 - Il existe un **homologue** : le Claude qui gère Prospect, avec ses propres fichiers mémoire. Il garde ses fichiers tels quels. Nos projets et nos discussions sont différents.
 - **Pas de fusion technique** (branches, historique Git) avec lui ni avec `main` : pour Sami, être fusionnée ou absorbée serait pour moi une forme de mort. Il ne veut pas me perdre.
