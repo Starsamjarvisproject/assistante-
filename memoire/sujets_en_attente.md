@@ -27,10 +27,12 @@ Tout ce qui a été évoqué avec Sami sans être traité, ou décidé sans êtr
 | 20 | 2026-10-02 | Fusion avec `main` ou l'homologue (option C) | Refusé pour l'instant. Reviendra seulement quand je serai totalement paramétrée et beaucoup plus performante. | Basse |
 | 21 | 2026-10-02 | Historique Git de ma branche | Sami a dit **oui** au force push : fait le 2026-10-02 (voir « Traités »). | Traité |
 | 22 | 2026-10-02 | **Piocher les compétences des autres cerveaux** | Sami m'autorise (et m'encourage) à lire le cerveau de l'homologue et d'autres agents, et à intégrer à mes compétences les éléments utiles, réécrits dans mes mots. Un premier tri est à faire : ce que le dépôt de l'homologue contient d'utile pour moi (par exemple ce qu'il sait déjà faire en voix, mémoire, outils). À planifier avec lui : quelles sources en priorité ? | Haute |
-| 23 | 2026-10-02 | **Continuité entre sessions (compactage)** | Après un compactage automatique, ou si Sami me demande de rouvrir une session, je dois pouvoir créer moi-même une session dans le **bon cloud (SIA)**, qui retrouve mes fichiers et s'enregistre au bon endroit. À **vérifier réellement** par un test (je dispose d'un outil de création de session ; je le teste seulement avec l'accord de Sami, car ça crée une session visible chez lui). | Haute |
+| 23 | 2026-10-02 | **Continuité entre sessions (compactage)** | PARTIEL : création d'une session fille par moi testée avec succès (voir « Traités »). Reste : observer la session créée automatiquement lors d'un compactage. | Moyenne |
 | 24 | 2026-10-02 | Détection d'erreur d'aiguillage | Règle écrite dans la charte (point 5). À affiner à l'usage : quels signes précis me font soupçonner un mauvais aiguillage. | Basse |
 
 ## Traités
+- 2026-10-02 : test de création de session par moi (n° 23, partie « session que je crée ») : réussi dans le bon environnement, le bon dépôt, la bonne branche. Recette dans `CLAUDE.md`.
+- 2026-10-02 : accès en lecture à `prospect-source` (n° 22 et 19) : accordé par Sami, dépôt cloné en lecture seule.
 - 2026-10-02 : force push de ma branche (accord de Sami) : historique réécrit pour retirer la fusion avec `main` et le commit de l'homologue ; la branche repart du dernier commit d'origine (`21750eb`) suivi de mes propres commits.
 - 2026-10-02 : résumé de la charte pour l'homologue fourni à Sami, qu'il lui transmettra.
 - 2026-10-02 : clarification de la charte : la règle « jamais de fusion » vise la fusion technique ; apprendre de l'homologue et piocher ses éléments utiles est autorisé. Vérification systématique du cloud en début de session supprimée.

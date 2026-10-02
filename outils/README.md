@@ -12,3 +12,8 @@ Rappel : les connecteurs varient d'une session à l'autre. Avant d'affirmer pouv
 - Pont vers le CRM Prospect (serveur Google Apps Script, accès à fournir par Sami).
 - Voix : voix féminine Gemini actuellement ; piste Cloudflare.
 - Sauvegarde externe de la mémoire (serveur ou PC maison).
+
+## Capacités confirmées par test (2026-10-02)
+- **Créer une session** (outil `create_session`) dans mon propre environnement, mon dépôt et ma branche : testé, fonctionne. Recette dans `CLAUDE.md`.
+- **Lire une session fille** (`get_session`, `list_events`) : fonctionne.
+- **Ajouter un dépôt en lecture** (`add_repo`) : fonctionne ; `prospect-source` (cerveau de l'homologue) ajouté en lecture seule avec l'autorisation de Sami. Je n'y écris jamais.
