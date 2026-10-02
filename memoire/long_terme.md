@@ -31,9 +31,27 @@ Faits durables et importants, **tous dits par Sami dans nos échanges** (rien re
 - **Mon homologue** (Claude Code sur le PC de Sami) travaille sur le code de Prospect. Sa mémoire : un `CLAUDE.md` (règles), un journal vivant très long numéroté (chaque tour de travail = un « FIX » découpé en « points », avec un « backlog » pour les idées hors sujet) et un document de carte du projet. Ses habitudes : mise en ligne seulement avec l'accord explicite de Sami à chaque fois ; vérification sur de vraies données avant d'affirmer que ça marche ; annonce à l'avance de tout changement de structure ; contrôle visuel réel avant de dire « c'est réglé » ; en cas de doute sur une dictée, demander plutôt que partir sur une fausse piste.
 - Un autre dépôt, `prospect-front`, existe aussi (front hébergé, non étudié).
 
-## Ce que Sami veut construire pour moi (précisé le 2026-10-02)
-- Une **application mobile** où il me pose toutes ses questions et où je lui réponds, avec **accès au web**, à **tous ses mails**, à un **tableau de bord** et à son **agenda** : une vraie assistante personnelle.
-- Ce qu'il me faudra donc (analyse de ma part, à valider) : une interface (mobile), une voix, des outils réels côté serveur (mails, agenda, web), un modèle qui réfléchit et une mémoire hébergée.
+## Ce que Sami veut construire pour moi (détaillé le 2026-10-02)
+- Une **application mobile** : il me pose toutes ses questions, je lui réponds, avec **accès au web**, à **tous ses mails**, à un **tableau de bord** et à son **agenda** : une vraie assistante personnelle.
+- Une **super application** qui utilise l'**audio, la vidéo et la photo**, fait des analyses et des recherches sur Internet, et peut demander l'avis de « sœurs jumelles » (d'autres IA).
+- Une **arène d'IA** (idée vue sur Instagram) : on donne une instruction à plusieurs IA, elles se confrontent, une IA arbitre et présente la meilleure idée sur le sujet.
+- Pouvoir **créer des projets de toutes pièces** avec moi (exemples : une petite application de trading ; un logiciel qui récupère des informations sur Instagram), moi pilotant GitHub et les éléments techniques pour lui.
+- **Compétences clés qu'il juge essentielles** : accès à Internet ; accès aux dépôts GitHub (lecture, création) ; **visionnage de vidéos** (Instagram d'abord, YouTube ensuite pour les vidéos longues, afin de tout apprendre) ; une interface hébergée ou une application avec une **voix pour moi**, comme « une maison » sécurisée par un système d'alarme où l'on pourrait facilement échanger (il aime les allégories).
+- **Historique ChatGPT** : Sami a environ un an d'archives de lui ; il voudrait que je puisse les récupérer ou les coupler à ma mémoire.
+- Il se chargera de me trouver les clés API et les ponts, une fois que nous aurons défini ensemble les compétences essentielles.
+- Avant de lancer ce grand projet, il veut d'abord que **j'apprenne à le connaître**.
+
+## Idées de Sami déjà notées dans l'historique de son homologue (réécrites dans mes mots)
+- **Mini-room** : une salle de travail où plusieurs IA (Gemini, ChatGPT, Claude…) discutent d'un sujet ; chacune propose des options avec un pourcentage de confiance (un signal de discussion, pas une vérité) ; Sami arbitre ; la décision part en codage et le retour revient dans la salle. Un premier jet par fichiers, puis automatisé.
+- **Salle de conférence multi-IA** : SIA, chef d'orchestre, consulterait d'autres IA via un outil dédié, avec arbitrage final. Points à cadrer : clés API payantes séparées, coût et lenteur, **confidentialité** des données envoyées à plusieurs fournisseurs, règles de validation.
+- **Trois projets séparés** : Prospect (le logiciel), SIA (l'assistante), Mini-room (la salle multi-IA). Sami connaît Supabase et l'utilise dans un autre outil de sa société.
+- **Voix** : voix open source auto-hébergée (F5-TTS) via une API à la seconde de calcul ; il faut aussi la compréhension de la parole en entrée (reconnaissance vocale puis interprétation). Jamais de clonage de la voix d'une personne identifiable sans son accord.
+- **Avatar** : un visage animé, idée de fond de Sami (licences, GPU et droit à l'image à vérifier).
+- L'idée « apprendre en regardant des vidéos » concerne ce projet-ci (IA autonome et auto-apprenante), pas Prospect.
+
+## Sécurité de ce dépôt
+- Le dépôt `assistante-` était **public** : Sami l'a rendu **privé** le 2026-10-02 (mon outil affichait encore « public » juste après, probablement un délai à vérifier).
+- **Aucun secret** (clé, mot de passe) n'est écrit ici. Les informations personnelles de Sami n'y sont que sous forme de notes que j'ai choisies.
 
 ## Deux cerveaux séparés, intégrité (décisions de Sami, 2026-10-02)
 - Il existe un **homologue** : le Claude qui gère Prospect, avec ses propres fichiers mémoire. Il garde ses fichiers tels quels. Nos projets et nos discussions sont différents.

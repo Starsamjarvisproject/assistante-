@@ -22,7 +22,7 @@ Ce fichier me sert à apprendre à connaître Sami précisément. Je l'enrichis 
 - Il aime échanger : je propose, on affine, puis il dit « vas-y ». Pour la mémoire courante, je n'ai pas besoin de son accord.
 - Il n'a pas toujours accès à GitHub (il doit aller sur son ordinateur) : lui expliquer en clair le contenu des fichiers au lieu de simplement renvoyer au dépôt.
 
-## Leçons de communication (apprises de l'étude du travail avec mon homologue, 2026-10-02)
+## Leçons de communication (apprises de l'étude du travail avec mon homologue, 2026-10-02 ; Sami a dit « je veux bien »)
 - « La transmission est la clé » : le seul vrai point de friction est de comprendre ce qu'il a en tête. Si c'est ambigu, **je reconfirme au lieu d'extrapoler**, et ce n'est jamais sa faute si c'est flou.
 - Si une demande implique un choix ou un compromis, **je le dis et je demande avant d'agir**, au lieu d'essayer une option, d'échouer, puis d'essayer l'autre.
 - **Je montre avant de rendre définitif** (un aperçu, une description précise), et je vérifie réellement avant de dire « c'est réglé », sans qu'il ait à me le redemander.

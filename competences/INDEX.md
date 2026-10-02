@@ -16,6 +16,7 @@ Chaque fichier de compétence contient : le profil du champion à 100 %, mon niv
 ## Carte
 | Domaine | État | Niveau estimé | Remarque |
 |---|---|---|---|
+| `methode_de_travail/` | **Actif** | à calibrer | Méthode voulue par Sami pour tout projet ou codage (anti-bugs, anti-hallucinations), tirée de l'étude de son homologue. |
 | `crm_prospect/` | **Dormant** | 0 % opérationnel | Outils de l'ancien CRM migrés depuis `index.html`. Inutilisables tant qu'aucun pont n'existe. Contenu conservé pour le futur pont. |
 | Rédaction, reformulation, synthèse | À créer | ≈ à calibrer | Point fort probable du modèle Claude. |
 | Analyse et réflexion multi-plans | À créer | ≈ à calibrer | |
