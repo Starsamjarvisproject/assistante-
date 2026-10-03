@@ -38,9 +38,9 @@ Tout ce qui a été évoqué avec Sami sans être traité, ou décidé sans êtr
 | 31 | 2026-10-02 | Garde-fou dans le `CLAUDE.md` de l'homologue | Message fourni à Sami pour que l'homologue empêche le chargement automatique dans mes sessions (en-tête de garde, et copie de sauvegarde sous un autre nom). À confirmer quand c'est fait. | Moyenne |
 | 32 | 2026-10-03 | **Pronoms pour parler de Sami** | Sami n'a pas dit comment il/elle veut qu'on parle de lui/elle. Je n'ai pas à le deviner : je lui demande. En attendant j'évite « il » et « elle » dans mes réponses. Mes fichiers actuels contiennent « il » : à corriger selon sa réponse (le `CLAUDE.md` demande son accord pour y toucher). | Haute |
 | 33 | 2026-10-03 | **Versions Apps Script (limite de 200)** | Sami est bloqué (environ 191 versions). Faits vérifiés dans la documentation officielle. L'homologue a proposé ce matin une stratégie (corrections d'affichage sur Cloudflare, déploiement serveur regroupé, tests sur la version brouillon) et attend le feu vert de Sami. À suivre : le ménage en masse des versions inutilisées, puis la validation de la stratégie. | Haute |
-| 34 | 2026-10-03 | Mot « vécu » dicté « véhicule » | J'ai compris « avant de te parler de mon vécu ». À confirmer discrètement si l'occasion se présente. | Basse |
 
 ## Traités
+- 2026-10-03 : « véhicule » = « vécu » : confirmé par Sami.
 - 2026-10-03 : ton de Sami (« Sami », doux en général, direct quand il est focus) : noté dans `memoire/comportement.md`.
 - 2026-10-03 : attentes de Sami (professionnelle, perfectionniste, jusqu'au bout) et règle de hiérarchisation automatique de ses messages multi-sujets : notées dans `memoire/comportement.md`.
 - 2026-10-03 : limites techniques et alerte anticipée ajoutées à `competences/methode_de_travail/`.
