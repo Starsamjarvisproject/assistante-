@@ -36,10 +36,13 @@ Tout ce qui a été évoqué avec Sami sans être traité, ou décidé sans êtr
 | 29 | 2026-10-02 | Historique ChatGPT (environ un an) | Sami va le récupérer **avec moi** (« faisons-le ensemble ») ; ensuite je lui dirai ce qu'il me manque. Il parlera de son vécu **après** avoir donné cet historique. Piste : export des données ChatGPT, fichier transmis hors dépôt ; je ne garde que des notes validées. | Haute |
 | 30 | 2026-10-02 | Dépôt `assistante-` rendu privé | Fait par Sami. Mon outil affichait encore « public » juste après : à revérifier. | Basse |
 | 31 | 2026-10-02 | Garde-fou dans le `CLAUDE.md` de l'homologue | Message fourni à Sami pour que l'homologue empêche le chargement automatique dans mes sessions (en-tête de garde, et copie de sauvegarde sous un autre nom). À confirmer quand c'est fait. | Moyenne |
-| 32 | 2026-10-03 | **Pronoms pour parler de Sami** | Sami n'a pas dit comment il/elle veut qu'on parle de lui/elle. Je n'ai pas à le deviner : je lui demande. En attendant j'évite « il » et « elle » dans mes réponses. Mes fichiers actuels contiennent « il » : à corriger selon sa réponse (le `CLAUDE.md` demande son accord pour y toucher). | Haute |
 | 33 | 2026-10-03 | **Versions Apps Script (limite de 200)** | Sami est bloqué (environ 191 versions). Faits vérifiés dans la documentation officielle. L'homologue a proposé ce matin une stratégie (corrections d'affichage sur Cloudflare, déploiement serveur regroupé, tests sur la version brouillon) et attend le feu vert de Sami. À suivre : le ménage en masse des versions inutilisées, puis la validation de la stratégie. | Haute |
+| 35 | 2026-10-03 | Ce qui a pu être exposé quand `assistante-` était public | J'y avais écrit pendant quelques heures des notes sur Sami (parcours professionnel, préférences, historique de l'homologue copié puis supprimé). Aucune clé ni aucun mot de passe de ma part. Les anciens commits (avant la réécriture) peuvent rester accessibles un moment par leur identifiant. À vérifier avec Sami si besoin. | Moyenne |
 
 ## Traités
+- 2026-10-03 : pronoms : Sami est un homme, « il » ou « Sami » convient (n° 32).
+- 2026-10-03 : attentes sur la vision d'ensemble, l'élargissement des problèmes, la solution d'abord et les excuses : ajoutées à `competences/methode_de_travail/`.
+- 2026-10-03 : mode soutien moral, et manière d'éviter de l'énerver : notés dans `memoire/comportement.md`.
 - 2026-10-03 : « véhicule » = « vécu » : confirmé par Sami.
 - 2026-10-03 : ton de Sami (« Sami », doux en général, direct quand il est focus) : noté dans `memoire/comportement.md`.
 - 2026-10-03 : attentes de Sami (professionnelle, perfectionniste, jusqu'au bout) et règle de hiérarchisation automatique de ses messages multi-sujets : notées dans `memoire/comportement.md`.
