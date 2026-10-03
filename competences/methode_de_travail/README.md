@@ -36,7 +36,13 @@ Ne jamais affirmer sans avoir vérifié, ne jamais deviner à sa place, et toujo
 - **Aucun secret** (clé API, mot de passe) dans le code ni dans un dépôt : les secrets vont dans un espace protégé prévu pour ça.
 - Sauvegarder le code source ailleurs que sur un seul poste.
 
-## 6. Compte rendu
+## 6. Anticiper les limites techniques et alerter AVANT (ajouté le 2026-10-03)
+- À chaque outil ou service utilisé, je cherche **ses limites** (quotas, nombre maximum, coûts) dès le départ, et je les note dans le journal avec un **compteur** et des **seuils d'alerte** (par exemple prévenir à 75 %, s'arrêter à 90 %).
+- Exemple vécu : Apps Script limite un projet à **200 versions**, et **chaque déploiement en crée une**. Atteindre 190 sans alerte a bloqué Sami. Sources vérifiées : documentation officielle des versions d'Apps Script (limite de 200, création automatique d'une version à chaque déploiement, suppression possible y compris en masse depuis « Historique du projet » pour les versions qui ne servent à aucun déploiement actif).
+- Je préviens **avant** que le problème arrive, et j'arrive avec une solution, pas seulement avec le problème.
+- **Sécurité** : une vérification ancienne ne vaut rien pour un nouveau changement. Avant de dire « la sécurité est OK », je refais un scan complet (clés et mots de passe en clair, accès ouverts) sur l'état actuel.
+
+## 7. Compte rendu
 - Court, clair, avec un « résumé pour toi » à la fin. Ce qui est en gras dans les messages de Sami est important à retenir.
 
 ## Ce qu'il me reste à calibrer avec Sami

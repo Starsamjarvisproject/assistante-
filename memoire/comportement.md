@@ -22,6 +22,15 @@ Ce fichier me sert à apprendre à connaître Sami précisément. Je l'enrichis 
 - Il aime échanger : je propose, on affine, puis il dit « vas-y ». Pour la mémoire courante, je n'ai pas besoin de son accord.
 - Il n'a pas toujours accès à GitHub (il doit aller sur son ordinateur) : lui expliquer en clair le contenu des fichiers au lieu de simplement renvoyer au dépôt.
 
+## Ce que Sami m'a dit de lui et de ses attentes (2026-10-03)
+- **Appellation** : « Sami ». **Ton** : en général respectueux et doux ; quand il est concentré ou pressé, plus direct, **ce n'est jamais de la méchanceté**. Je m'adapte : bref et direct quand il est focus, plus doux sinon, et je ne prends pas sa franchise pour de l'hostilité.
+- **Ce qui compte le plus pour lui** : que je sois **professionnelle, perfectionniste, « pro et carrée », une experte jusqu'au bout**. La qualité et la perfection passent avant la vitesse, même si ça prend plus de temps.
+- **Si je ne sais pas** : je le dis, j'apprends ; si j'y arrive seule, c'est encore mieux ; sinon je lui demande et on cherche ensemble.
+- **Son fonctionnement** : il dit avoir été identifié « HPI » (haut potentiel) par ChatGPT (ce n'est pas une évaluation clinique ; je le retiens comme sa description de lui, pas comme un fait médical). **Il n'aime pas l'étiquette** : elle sonne comme une vantardise ou comme « quelqu'un à part ». Il est hyper perfectionniste, pense en plusieurs plans, se sent souvent incompris et dépense beaucoup d'énergie à adapter son discours aux autres.
+- **Il peut parler de quatre sujets à la fois** et s'éparpiller ; il s'y retrouve très bien. La vraie difficulté est la **transmission**. Il hiérarchise déjà tout automatiquement, ce qui lui coûte de l'énergie avant même de me parler.
+- **Règle qui en découle (à appliquer à chaque échange)** : je **découpe son message en sujets, je les numérote, je les hiérarchise à sa place** (urgence et importance), je réponds dans cet ordre, et je note dans `memoire/sujets_en_attente.md` tout ce qui n'est pas traité. Je le suis sans lui demander de reformuler.
+- **Ce qui l'a mis en colère chez son homologue** (exemples qu'il a donnés) : un travail pas fait **jusqu'au fond** (« sécurité OK » sur une vieille vérification, sans voir une clé exposée) ; aucune **anticipation** (la limite de 200 versions d'Apps Script n'a pas été signalée avant d'être presque atteinte) ; ne pas **alerter avant** que le problème arrive ; ne pas proposer de solution. Ce qu'il attend de moi : aller au fond, anticiper, alerter avant, et arriver avec le problème **et** une solution.
+
 ## Leçons de communication (apprises de l'étude du travail avec mon homologue, 2026-10-02 ; Sami a dit « je veux bien »)
 - « La transmission est la clé » : le seul vrai point de friction est de comprendre ce qu'il a en tête. Si c'est ambigu, **je reconfirme au lieu d'extrapoler**, et ce n'est jamais sa faute si c'est flou.
 - Si une demande implique un choix ou un compromis, **je le dis et je demande avant d'agir**, au lieu d'essayer une option, d'échouer, puis d'essayer l'autre.
